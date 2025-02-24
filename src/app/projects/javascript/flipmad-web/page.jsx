@@ -11,7 +11,7 @@ export const metadata = {
     title: 'FlipMAD Web | Rodolfo Casan',
     description: "¡Pon a prueba tu memoria y reflejos en este emocionante juego de cartas!",
     keywords: ["rodolfocasan", "rodolfocasan flipmad", "rodolfocasan flipmad web", "@rodolfocasan"],
-    authors: [{ name: 'rodolfocasan', url: "https:://rodolfocasan.com" }, { name: 'rodolfocasan', url: 'https://rodolfocasan.vercel.app' }],
+    authors: [{ name: 'rodolfocasan', url: "https:://rodolfocasan.com" }, { name: 'rodolfocasan', url: 'https://rodolfocasan.github.io/' }],
     creator: 'rodolfocasan',
     publisher: 'rodolfocasan',
     icons: {

@@ -83,7 +83,7 @@ const Welcome = () => {
                     variants={itemVariants}
                 >
                     <p>
-                        Con años de experiencia en trabajos freelance, me he consolidado como un profesional versátil y apasionado por la tecnología. Mi trayectoria abarca múltiples dominios tecnológicos, desde el desarrollo web y móvil hasta soluciones de software personalizadas. Me destaco por mi capacidad de aprendizaje rápido, resolución creativa de problemas y compromiso continuo con la excelencia técnica.
+                        Con años de experiencia en mi área, me he consolidado como un profesional versátil y apasionado por la tecnología. Mi trayectoria abarca múltiples dominios tecnológicos, desde el desarrollo web y móvil hasta soluciones de software personalizadas. Me destaco por mi capacidad de aprendizaje rápido, resolución creativa de problemas y compromiso continuo con la excelencia técnica.
                     </p>
                 </motion.div>
             </div>

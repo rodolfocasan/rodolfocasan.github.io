@@ -12,7 +12,7 @@ export const metadata = {
     title: 'SimuRES | Rodolfo Casan',
     description: "SimuRES es una herramienta multiplataforma (Linux) diseñada para modificar y simular resoluciones de pantalla mediante escalado, ofreciendo tanto una interfaz gráfica intuitiva como una potente línea de comandos.",
     keywords: ["rodolfocasan", "rodolfocasan simures", "simures", "@rodolfocasan"],
-    authors: [{ name: 'rodolfocasan', url: "https:://rodolfocasan.com" }, { name: 'rodolfocasan', url: 'https://rodolfocasan.vercel.app' }],
+    authors: [{ name: 'rodolfocasan', url: "https:://rodolfocasan.com" }, { name: 'rodolfocasan', url: 'https://rodolfocasan.github.io/' }],
     creator: 'rodolfocasan',
     publisher: 'rodolfocasan',
     icons: {

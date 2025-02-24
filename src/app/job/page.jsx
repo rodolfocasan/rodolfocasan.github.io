@@ -13,7 +13,7 @@ export const metadata = {
     title: 'Modalidades de Trabajo | Rodolfo Casan',
     description: "Elige la forma de trabajo que mejor se adapte a tus necesidades y objetivos.",
     keywords: ["rodolfocasan", "rodolfocasan contratar", "rodolfocasan contacto", "rodolfocasan instagram", "rodolfocasan telegram", "rodolfocasan whatsapp"],
-    authors: [{ name: 'rodolfocasan', url: "https:://rodolfocasan.com" }, { name: 'rodolfocasan', url: 'https://rodolfocasan.vercel.app' }],
+    authors: [{ name: 'rodolfocasan', url: "https:://rodolfocasan.com" }, { name: 'rodolfocasan', url: 'https://rodolfocasan.github.io/' }],
     creator: 'rodolfocasan',
     publisher: 'rodolfocasan',
     icons: {

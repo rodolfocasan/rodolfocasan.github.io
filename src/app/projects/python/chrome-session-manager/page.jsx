@@ -12,7 +12,7 @@ export const metadata = {
     title: 'Chrome Session Manager | Rodolfo Casan',
     description: "Gestiona múltiples sesiones paralelas de Google Chrome con una interfaz moderna, intuitiva y potente.",
     keywords: ["rodolfocasan", "rodolfocasan chrome", "chrome session manager", "rodolfocasan chrome session manager", "@rodolfocasan"],
-    authors: [{ name: 'rodolfocasan', url: "https:://rodolfocasan.com" }, { name: 'rodolfocasan', url: 'https://rodolfocasan.vercel.app' }],
+    authors: [{ name: 'rodolfocasan', url: "https:://rodolfocasan.com" }, { name: 'rodolfocasan', url: 'https://rodolfocasan.github.io/' }],
     creator: 'rodolfocasan',
     publisher: 'rodolfocasan',
     icons: {

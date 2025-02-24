@@ -13,7 +13,7 @@ export const metadata = {
     title: 'Contacto | Rodolfo Casan',
     description: "Contáctame directamente desde esta sección.",
     keywords: ["rodolfocasan", "rodolfocasan contact", "rodolfocasan contacto", "rodolfocasan instagram", "rodolfocasan telegram", "rodolfocasan whatsapp"],
-    authors: [{ name: 'rodolfocasan', url: "https:://rodolfocasan.com" }, { name: 'rodolfocasan', url: 'https://rodolfocasan.vercel.app' }],
+    authors: [{ name: 'rodolfocasan', url: "https:://rodolfocasan.com" }, { name: 'rodolfocasan', url: 'https://rodolfocasan.github.io/' }],
     creator: 'rodolfocasan',
     publisher: 'rodolfocasan',
     icons: {

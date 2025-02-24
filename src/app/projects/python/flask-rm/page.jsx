@@ -12,7 +12,7 @@ export const metadata = {
     title: 'Flask RM | Rodolfo Casan',
     description: "Un servidor web desarrollado en Python que proporciona un monitor de sistema en tiempo real mediante WebSocket. Permite visualizar el consumo de recursos de tu PC desde cualquier dispositivo conectado a la misma red.",
     keywords: ["rodolfocasan", "rodolfocasan flask", "rodolfocasan flask resources monitor", "@rodolfocasan"],
-    authors: [{ name: 'rodolfocasan', url: "https:://rodolfocasan.com" }, { name: 'rodolfocasan', url: 'https://rodolfocasan.vercel.app' }],
+    authors: [{ name: 'rodolfocasan', url: "https:://rodolfocasan.com" }, { name: 'rodolfocasan', url: 'https://rodolfocasan.github.io/' }],
     creator: 'rodolfocasan',
     publisher: 'rodolfocasan',
     icons: {

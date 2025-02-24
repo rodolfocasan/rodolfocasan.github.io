@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 
 const VideoYT = () => {
     // ID del video de YouTube extraído de la URL
-    const videoId = 'b663XCvfoY4';
+    const videoId = 'tuhq55llV7I';
 
     // Configuración de animación para el contenedor
     const containerAnimation = {

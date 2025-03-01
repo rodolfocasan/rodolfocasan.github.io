@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://rodolfocasan.github.io/
+
+# Sitemaps
+Sitemap: https://rodolfocasan.github.io/sitemap.xml

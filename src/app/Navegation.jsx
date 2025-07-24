@@ -1,421 +1,513 @@
 // src/app/Navegation.jsx
-"use client";
-import React, { useState, useEffect, useRef } from 'react';
+'use client';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ChevronDown, FileText } from 'lucide-react';
-
-import Data from "./constants.json";
 
 
 
 
 
-// Función auxiliar para convertir imagen a Base64
-const getBase64FromUrl = async (url) => {
-    try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
-    } catch (error) {
-        console.error('Base64 Error:', error);
-        return null;
-    }
-};
-
-const Navegation = () => {
-    // Estados para controlar los menús
+function Navegation() {
+    // Estado para controlar el menú móvil
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isProjectsOpen, setIsProjectsOpen] = useState(false);
-    const [isBlogOpen, setIsBlogOpen] = useState(false);
-    const dropdownRef = useRef(null);
+    // Estado para controlar los submenús
+    const [openSubmenus, setOpenSubmenus] = useState({});
+    // Estado para el scroll y efectos
+    const [isScrolled, setIsScrolled] = useState(false);
 
-    // Estado para almacenar todas las imágenes en caché
-    const [imageCache, setImageCache] = useState({});
+    // Referencias para detectar clics fuera de los menús
+    const navRef = useRef(null);
+    const mobileMenuRef = useRef(null);
 
-    // Datos del blog organizados por categorías
-    const blogCategories = [
-        {
-            category: 'YouTube',
-            posts: [
-                {
-                    name: 'Convierte tu cuenta de ChatGPT en una API GRATIS',
-                    path: '/blog/youtube/chatgpt-api-gratis',
-                    icon: <FileText className="w-5 h-5" />,
-                    newTab: false
-                }
-            ]
+    // Optimización: Usar useCallback para evitar recrear funciones en cada render
+    const handleScroll = useCallback(() => {
+        const scrolled = window.scrollY > 20;
+        if (scrolled !== isScrolled) {
+            setIsScrolled(scrolled);
         }
-    ];
+    }, [isScrolled]);
 
-    // Datos de los proyectos organizados por categorías
-    const projectCategories = [
+    // Efecto para detectar scroll y cambiar apariencia
+    useEffect(() => {
+        // Throttle del scroll para mejor rendimiento
+        let ticking = false;
+        const throttledHandleScroll = () => {
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    handleScroll();
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        };
+
+        window.addEventListener('scroll', throttledHandleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', throttledHandleScroll);
+    }, [handleScroll]);
+
+    // Efecto para cerrar menús al hacer click fuera (solo desktop)
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            // Solo cerrar menú móvil con la X, no con clicks fuera
+            // En desktop sí cerramos submenús con clicks fuera
+            if (navRef.current && !navRef.current.contains(event.target) && window.innerWidth >= 768) {
+                setOpenSubmenus({});
+            }
+        };
+
+        // Efecto para cerrar submenús con ESC
+        const handleEscKey = (event) => {
+            if (event.key === 'Escape') {
+                setOpenSubmenus({});
+                setIsMenuOpen(false);
+            }
+        };
+
+        // Agregar event listeners
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEscKey);
+
+        // Cleanup
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleEscKey);
+        };
+    }, []);
+
+    // Función para alternar submenús - optimizada con useCallback
+    const toggleSubmenu = useCallback((key) => {
+        setOpenSubmenus(prev => ({
+            ...prev,
+            [key]: !prev[key]
+        }));
+    }, []);
+
+    // Función para cerrar todos los submenús - optimizada con useCallback
+    const closeAllSubmenus = useCallback(() => {
+        setOpenSubmenus({});
+    }, []);
+
+    // Función para abrir solo un submenú específico (cerrar los demás) - NUEVA FUNCIÓN
+    const openSingleSubmenu = useCallback((key) => {
+        setOpenSubmenus({ [key]: true });
+    }, []);
+
+    // Función para alternar menú móvil - optimizada con useCallback
+    const toggleMobileMenu = useCallback(() => {
+        setIsMenuOpen(prev => !prev);
+    }, []);
+
+    // Función para cerrar menú móvil - optimizada con useCallback
+    const closeMobileMenu = useCallback(() => {
+        setIsMenuOpen(false);
+        closeAllSubmenus();
+    }, [closeAllSubmenus]);
+
+    // Función para renderizar enlaces con soporte para newTab
+    const renderLink = (item, className, onClick) => {
+        const commonProps = {
+            className,
+            onClick
+        };
+
+        if (item.newTab) {
+            return (
+                <a
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    {...commonProps}
+                >
+                    {item.title}
+                </a>
+            );
+        } else {
+            return (
+                <Link
+                    href={item.href}
+                    {...commonProps}
+                >
+                    {item.title}
+                </Link>
+            );
+        }
+    };
+
+    // Configuración de elementos del menú
+    const menuItems = [
         {
-            category: 'Python',
-            projects: [
-                {
-                    name: 'Chrome Session Manager',
-                    path: '/projects/python/chrome-session-manager',
-                    icon: 'https://raw.githubusercontent.com/rodolfocasan/chrome-session-manager/main//Storage/Settings/icons/favicon.png',
-                    newTab: false
-                },
-                {
-                    name: 'SimuRES',
-                    path: '/projects/python/simures',
-                    icon: 'https://raw.githubusercontent.com/rodolfocasan/simures/main/Storage/Icons/favicon_01.png',
-                    newTab: false
-                },
-                {
-                    name: 'Flask Resources Monitor',
-                    path: '/projects/python/flask-rm',
-                    icon: 'https://raw.githubusercontent.com/rodolfocasan/flask-resources-monitor/main/web/favicon.svg',
-                    newTab: false
-                }
-            ]
+            title: "Contacto",
+            href: "/contact",
+            type: "link",
+            newTab: false
         },
         {
-            category: 'Javascript',
-            projects: [
+            title: "Mis Proyectos",
+            type: "submenu",
+            key: "proyectos",
+            items: [
                 {
-                    name: 'FlipMAD (Web)',
-                    path: '/projects/javascript/flipmad-web',
-                    icon: 'https://raw.githubusercontent.com/rodolfocasan/flipmad-multiplatform/main/assets/icon-only.jpg',
-                    newTab: false
-                }
-            ]
-        },
-        {
-            category: 'Mobile',
-            projects: [
+                    title: "VOLQOR",
+                    href: "https://itch.io/profile/volqor",
+                    newTab: true
+                },
                 {
-                    name: 'FlipMAD (Android)',
-                    path: 'https://volqor.itch.io/flipmad',
-                    icon: 'https://raw.githubusercontent.com/rodolfocasan/flipmad-multiplatform/main/assets/splash.png',
+                    title: "Asoge Labs",
+                    href: "https://asogelabs.github.io/",
                     newTab: true
                 }
             ]
-        }
+        },
+        {
+            title: "Mis Apps",
+            type: "submenu",
+            key: "apps",
+            items: [
+                {
+                    title: "Mobile Apps",
+                    type: "category",
+                    items: [
+                        {
+                            title: "Another Chat Room",
+                            href: "/apps/mobile/another-chat-room",
+                            newTab: false
+                        },
+                        {
+                            title: "Huevos La Rural (Vendedor App)",
+                            href: "/apps/mobile/huevos-vendedor",
+                            newTab: false
+                        },
+                        {
+                            title: "FlipMAD",
+                            href: "https://volqor.itch.io/flipmad",
+                            newTab: true
+                        },
+                    ]
+                },
+                {
+                    title: "Desktop Apps",
+                    type: "category",
+                    items: [
+                        {
+                            title: "ARPA",
+                            href: "/apps/desktop/arpa",
+                            newTab: false
+                        },
+                        {
+                            title: "ARPA (no root)",
+                            href: "/apps/desktop/arpa-noroot",
+                            newTab: false
+                        },
+                        {
+                            title: "SimuRES",
+                            href: "/apps/desktop/simures",
+                            newTab: false
+                        },
+                        {
+                            title: "Google Chrome Session Manager",
+                            href: "/apps/desktop/chrome-session-manager",
+                            newTab: false
+                        },
+                        {
+                            title: "Pywkit Browser",
+                            href: "/apps/desktop/pywkit-browser",
+                            newTab: false
+                        },
+                    ]
+                }
+            ]
+        },
+        {
+            title: "Mis Estudios",
+            type: "submenu",
+            key: "estudios",
+            items: [
+                {
+                    title: "Educación nacional",
+                    href: "/edu/national",
+                    newTab: false
+                },
+                {
+                    title: "Educación internacional",
+                    href: "/edu/international",
+                    newTab: false
+                }
+            ]
+        },
+        {
+            title: "Recursos",
+            type: "submenu",
+            key: "recursos",
+            items: [
+                {
+                    title: "Educación gratis",
+                    href: "/resources/education",
+                    newTab: false
+                }
+            ]
+        },
+        {
+            title: "Blog",
+            type: "submenu",
+            key: "blog",
+            items: [
+                {
+                    title: "ChatGPT API Gratis",
+                    href: "/blog/youtube/chatgpt-api-gratis",
+                    newTab: false
+                }
+            ]
+        },
     ];
 
-    // Función para cargar y cachear una imagen
-    const loadAndCacheImage = async (url, cacheKey) => {
-        try {
-            const cached = localStorage.getItem(cacheKey);
-            if (cached) {
-                setImageCache(prev => ({ ...prev, [cacheKey]: cached }));
-                return;
-            }
-
-            const base64Image = await getBase64FromUrl(url);
-            if (base64Image) {
-                localStorage.setItem(cacheKey, base64Image);
-                setImageCache(prev => ({ ...prev, [cacheKey]: base64Image }));
-            }
-        } catch (error) {
-            console.error('Error al cargar imagen:', error);
-        }
-    };
-
-    // Efecto para cargar todas las imágenes al inicio
-    useEffect(() => {
-        loadAndCacheImage(Data.favicon, 'profile_favicon');
-
-        projectCategories.forEach(category => {
-            category.projects.forEach(project => {
-                const cacheKey = `project_icon_${project.name.toLowerCase().replace(/\s+/g, '_')}`;
-                loadAndCacheImage(project.icon, cacheKey);
-            });
-        });
-    }, []);
-
-    // Función para obtener imagen cacheada
-    const getCachedImage = (url, cacheKey) => {
-        return imageCache[cacheKey] || url;
-    };
-
-    // Función para alternar el menú principal
-    const toggleMenu = () => {
-        setIsMenuOpen(!isMenuOpen);
-    };
-
-    // Función para alternar el menú de proyectos
-    const toggleProjects = (e) => {
-        e.stopPropagation();
-        setIsProjectsOpen(!isProjectsOpen);
-        setIsBlogOpen(false);
-    };
-
-    // Función para alternar el menú del blog
-    const toggleBlog = (e) => {
-        e.stopPropagation();
-        setIsBlogOpen(!isBlogOpen);
-        setIsProjectsOpen(false);
-    };
-
-    // Función para cerrar todos los menús
-    const closeAllMenus = () => {
-        setIsProjectsOpen(false);
-        setIsBlogOpen(false);
-        setIsMenuOpen(false);
-    };
-
-    // Efecto para cerrar el menú al hacer clic fuera
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                closeAllMenus();
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
-
-    // Función para renderizar imagen de proyecto con object-fit y caché
-    const renderProjectIcon = (icon, name, size = 'w-8 h-8') => {
-        const cacheKey = `project_icon_${name.toLowerCase().replace(/\s+/g, '_')}`;
-        const cachedSrc = getCachedImage(icon, cacheKey);
-
-        return (
-            <div className={`${size} rounded-full overflow-hidden mr-3 flex-shrink-0 border border-white/20 flex items-center justify-center`}>
-                <img
-                    src={cachedSrc}
-                    alt={name}
-                    className="object-contain w-full h-full"
-                />
-            </div>
-        );
-    };
-
     return (
-        <nav ref={dropdownRef} className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md">
-            <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-                {/* Foto de perfil con caché */}
-                <Link href="/" className="flex items-center">
-                    <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/20 hover:scale-105 transition-transform">
-                        <img
-                            src={getCachedImage(Data.favicon, 'profile_favicon')}
-                            alt="Perfil"
-                            className="object-cover w-full h-full"
-                        />
+        <nav
+            ref={navRef}
+            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out ${isScrolled
+                ? 'backdrop-blur-xl bg-gray-900/80 border-b border-cyan-500/20 shadow-2xl shadow-cyan-500/10'
+                : 'backdrop-blur-sm bg-gray-900/60'
+                }`}
+        >
+            {/* Efecto de luz superior animado */}
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-60 animate-pulse"></div>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between h-16">
+
+                    {/* Logo/Brand - Desktop y Mobile */}
+                    <div className="flex-shrink-0">
+                        <Link href="/" className="group relative" onClick={closeAllSubmenus}>
+                            <div className="flex items-center space-x-2">
+                                {/* Icono futurista animado */}
+                                <div className="relative w-8 h-8 flex items-center justify-center">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-lg opacity-20 group-hover:opacity-40 transition-opacity duration-300 animate-pulse"></div>
+                                    <div className="relative w-6 h-6 border-2 border-cyan-400 rounded transform rotate-45 group-hover:rotate-90 transition-transform duration-500">
+                                        <div className="absolute inset-1 bg-cyan-400/20 rounded-sm"></div>
+                                    </div>
+                                </div>
+                                {/* Texto del logo */}
+                                <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent group-hover:from-blue-400 group-hover:to-purple-400 transition-all duration-300">
+                                    Inicio
+                                </span>
+                            </div>
+                            {/* Efecto de brillo en hover */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/0 via-cyan-400/10 to-cyan-400/0 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center rounded-lg"></div>
+                        </Link>
                     </div>
-                </Link>
 
-                {/* Menú de Escritorio */}
-                <div className="hidden md:flex items-center space-x-4">
-                    <Link
-                        href="/contact"
-                        className="text-white/80 hover:text-white transition-colors px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10"
-                        onClick={closeAllMenus}
-                    >
-                        Contacto
-                    </Link>
-
-                    {/* Menú desplegable del Blog */}
-                    <div className="relative">
-                        <button
-                            onClick={toggleBlog}
-                            className="flex items-center text-white/80 hover:text-white transition-colors px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10"
-                        >
-                            Blog
-                            <ChevronDown
-                                size={16}
-                                className={`ml-2 transition-transform ${isBlogOpen ? 'rotate-180' : ''}`}
-                            />
-                        </button>
-
-                        {isBlogOpen && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="absolute top-full left-0 mt-2 w-72 bg-gray-900 rounded-xl shadow-2xl border border-white/10 overflow-hidden"
-                            >
-                                {blogCategories.map((category, catIndex) => (
-                                    <div key={catIndex} className="px-4 py-3 border-b border-white/10 last:border-b-0">
-                                        <p className="text-white/60 text-xs uppercase mb-2 tracking-wider">{category.category}</p>
-                                        {category.posts.map((post, postIndex) => (
-                                            <Link
-                                                key={postIndex}
-                                                href={post.path}
-                                                target={post.newTab ? '_blank' : '_self'}
-                                                rel={post.newTab ? 'noopener noreferrer' : ''}
-                                                className="flex items-center text-white/80 hover:text-white py-2 hover:bg-white/5 rounded-md transition-colors"
-                                                onClick={closeAllMenus}
+                    {/* Menú Desktop */}
+                    <div className="hidden md:block">
+                        <div className="ml-10 flex items-baseline space-x-8">
+                            {menuItems.map((item, index) => (
+                                <div key={index} className="relative group">
+                                    {item.type === "link" ? (
+                                        // Enlaces simples
+                                        renderLink(
+                                            item,
+                                            "relative px-3 py-2 text-gray-300 hover:text-cyan-400 transition-all duration-300 text-sm font-medium group",
+                                            closeAllSubmenus
+                                        )
+                                    ) : (
+                                        // Submenús
+                                        <>
+                                            <button
+                                                className="relative px-3 py-2 text-gray-300 hover:text-cyan-400 transition-all duration-300 text-sm font-medium group flex items-center space-x-1"
+                                                onMouseEnter={() => openSingleSubmenu(item.key)} // CAMBIO AQUÍ
+                                                onClick={() => toggleSubmenu(item.key)}
                                             >
-                                                <div className="w-8 h-8 rounded-full overflow-hidden mr-3 flex-shrink-0 border border-white/20 flex items-center justify-center text-white/80">
-                                                    {post.icon}
+                                                <span>{item.title}</span>
+                                                {/* Flecha animada */}
+                                                <svg
+                                                    className={`w-4 h-4 transition-transform duration-300 ${openSubmenus[item.key] ? 'rotate-180' : ''}`}
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                                {/* Línea inferior animada */}
+                                                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-400 to-blue-500 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+                                                {/* Efecto de resplandor en hover */}
+                                                <div className="absolute inset-0 bg-cyan-400/5 rounded-lg scale-95 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-300"></div>
+                                            </button>
+
+                                            {/* Panel del submenú - ANCHO Y POSICIÓN CORREGIDOS */}
+                                            <div
+                                                className={`absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-72 max-w-[calc(100vw-2rem)] transition-all duration-300 ${openSubmenus[item.key]
+                                                    ? 'opacity-100 visible translate-y-0'
+                                                    : 'opacity-0 invisible -translate-y-2'
+                                                    }`}
+                                                onMouseEnter={() => openSingleSubmenu(item.key)} // CAMBIO AQUÍ
+                                                onMouseLeave={() => closeAllSubmenus()} // CAMBIO AQUÍ
+                                                style={{
+                                                    left: index >= menuItems.length - 2 ? 'auto' : '50%',
+                                                    right: index >= menuItems.length - 2 ? '0' : 'auto',
+                                                    transform: index >= menuItems.length - 2 ? 'none' : 'translateX(-50%)'
+                                                }}
+                                            >
+                                                <div className="bg-gray-800/95 backdrop-blur-xl rounded-xl border border-cyan-500/20 shadow-2xl shadow-cyan-500/10 p-4 overflow-hidden">
+                                                    {/* Efecto de brillo superior */}
+                                                    <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent"></div>
+
+                                                    <div className="space-y-1">
+                                                        {item.items.map((subItem, subIndex) => (
+                                                            <div key={subIndex}>
+                                                                {subItem.type === "category" ? (
+                                                                    // Categorías con sub-elementos
+                                                                    <div className="mb-3 last:mb-0">
+                                                                        <h4 className="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-2 px-2 word-wrap break-words">
+                                                                            {subItem.title}
+                                                                        </h4>
+                                                                        <div className="space-y-1">
+                                                                            {subItem.items.map((categoryItem, categoryIndex) => (
+                                                                                <div key={categoryIndex}>
+                                                                                    {renderLink(
+                                                                                        categoryItem,
+                                                                                        "flex items-start px-3 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-cyan-500/10 rounded-lg transition-all duration-200 group/item ml-2",
+                                                                                        closeAllSubmenus
+                                                                                    )}
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    // Enlaces directos
+                                                                    <div>
+                                                                        {renderLink(
+                                                                            subItem,
+                                                                            "flex items-start px-3 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-cyan-500/10 rounded-lg transition-all duration-200 group/item",
+                                                                            closeAllSubmenus
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 </div>
-                                                <span className="text-sm">{post.name}</span>
-                                            </Link>
-                                        ))}
-                                    </div>
-                                ))}
-                            </motion.div>
-                        )}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
-                    {/* Menú desplegable de Proyectos */}
-                    <div className="relative">
+                    {/* Botón menú móvil - CORREGIDO */}
+                    <div className="md:hidden">
                         <button
-                            onClick={toggleProjects}
-                            className="flex items-center text-white/80 hover:text-white transition-colors px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10"
+                            onClick={toggleMobileMenu}
+                            className="relative inline-flex items-center justify-center p-2 rounded-lg text-gray-300 hover:text-cyan-400 hover:bg-gray-700/50 transition-all duration-300 group z-50"
+                            aria-label={isMenuOpen ? "Cerrar menú" : "Abrir menú"}
                         >
-                            Mis Proyectos (OpenSource)
-                            <ChevronDown
-                                size={16}
-                                className={`ml-2 transition-transform ${isProjectsOpen ? 'rotate-180' : ''}`}
-                            />
+                            <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/0 to-cyan-400/10 rounded-lg scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-300"></div>
+                            <div className="relative">
+                                {/* Ícono hamburguesa/X animado - CORREGIDO */}
+                                <div className="w-6 h-6 flex flex-col justify-center items-center relative">
+                                    <span
+                                        className={`absolute block h-0.5 w-6 bg-current transform transition-all duration-300 ${isMenuOpen
+                                            ? 'rotate-45'
+                                            : '-translate-y-1.5'
+                                            }`}
+                                    ></span>
+                                    <span
+                                        className={`absolute block h-0.5 w-6 bg-current transition-all duration-300 ${isMenuOpen
+                                            ? 'opacity-0 scale-0'
+                                            : 'opacity-100 scale-100'
+                                            }`}
+                                    ></span>
+                                    <span
+                                        className={`absolute block h-0.5 w-6 bg-current transform transition-all duration-300 ${isMenuOpen
+                                            ? '-rotate-45'
+                                            : 'translate-y-1.5'
+                                            }`}
+                                    ></span>
+                                </div>
+                            </div>
                         </button>
-
-                        {isProjectsOpen && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="absolute top-full left-0 mt-2 w-72 bg-gray-900 rounded-xl shadow-2xl border border-white/10 overflow-hidden"
-                            >
-                                {projectCategories.map((category, catIndex) => (
-                                    <div key={catIndex} className="px-4 py-3 border-b border-white/10 last:border-b-0">
-                                        <p className="text-white/60 text-xs uppercase mb-2 tracking-wider">{category.category}</p>
-                                        {category.projects.map((project, projIndex) => (
-                                            <Link
-                                                key={projIndex}
-                                                href={project.path}
-                                                target={project.newTab ? '_blank' : '_self'}
-                                                rel={project.newTab ? 'noopener noreferrer' : ''}
-                                                className="flex items-center text-white/80 hover:text-white py-2 hover:bg-white/5 rounded-md transition-colors"
-                                                onClick={closeAllMenus}
-                                            >
-                                                {renderProjectIcon(project.icon, project.name)}
-                                                <span className="text-sm">{project.name}</span>
-                                            </Link>
-                                        ))}
-                                    </div>
-                                ))}
-                            </motion.div>
-                        )}
                     </div>
-                </div>
-
-                {/* Botón de Menú Móvil */}
-                <div className="md:hidden">
-                    <button
-                        onClick={toggleMenu}
-                        className="text-white/80 hover:text-white"
-                    >
-                        {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                    </button>
                 </div>
             </div>
 
-            {/* Menú Móvil */}
-            <AnimatePresence>
-                {isMenuOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.2 }}
-                        className="md:hidden absolute top-full left-0 right-0 bg-black/90 backdrop-blur-md"
-                    >
-                        <div className="px-4 pt-2 pb-4 space-y-2">
-                            <Link
-                                href="/contact"
-                                className="block text-white/80 hover:text-white py-3 border-b border-white/10 hover:bg-white/5 transition-all"
-                                onClick={closeAllMenus}
-                            >
-                                Contacto
-                            </Link>
+            {/* Menú móvil - CORREGIDO */}
+            <div
+                ref={mobileMenuRef}
+                className={`md:hidden transition-all duration-300 ease-out ${isMenuOpen
+                    ? 'max-h-screen opacity-100'
+                    : 'max-h-0 opacity-0 overflow-hidden'
+                    }`}
+            >
+                <div className="bg-gray-900/95 backdrop-blur-xl border-t border-cyan-500/20 shadow-2xl">
+                    <div className="px-4 pt-4 pb-6 space-y-2">
+                        {menuItems.map((item, index) => (
+                            <div key={index}>
+                                {item.type === "link" ? (
+                                    // Enlaces simples móvil
+                                    renderLink(
+                                        item,
+                                        "block px-4 py-3 text-gray-300 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-all duration-200 border border-transparent hover:border-cyan-500/20 break-words hyphens-auto",
+                                        closeMobileMenu
+                                    )
+                                ) : (
+                                    // Submenús móvil
+                                    <div>
+                                        <button
+                                            onClick={() => toggleSubmenu(item.key)}
+                                            className="w-full flex items-center justify-between px-4 py-3 text-gray-300 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-all duration-200 border border-transparent hover:border-cyan-500/20"
+                                        >
+                                            <span className="text-left flex-1 mr-2 break-words hyphens-auto">{item.title}</span>
+                                            <svg
+                                                className={`w-5 h-5 transition-transform duration-300 flex-shrink-0 ${openSubmenus[item.key] ? 'rotate-180' : ''}`}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </button>
 
-                            {/* Sección de Blog en Móvil */}
-                            <div>
-                                <div
-                                    onClick={toggleBlog}
-                                    className="flex justify-between items-center text-white/80 hover:text-white py-3 border-b border-white/10 hover:bg-white/5 transition-all"
-                                >
-                                    Blog
-                                    <ChevronDown
-                                        size={16}
-                                        className={`transition-transform ${isBlogOpen ? 'rotate-180' : ''}`}
-                                    />
-                                </div>
-
-                                {isBlogOpen && (
-                                    <div className="pl-4 mt-2 space-y-2">
-                                        {blogCategories.map((category, catIndex) => (
-                                            <div key={catIndex}>
-                                                <p className="text-white/60 text-xs uppercase mb-2">{category.category}</p>
-                                                {category.posts.map((post, postIndex) => (
-                                                    <Link
-                                                        key={postIndex}
-                                                        href={post.path}
-                                                        target={post.newTab ? '_blank' : '_self'}
-                                                        rel={post.newTab ? 'noopener noreferrer' : ''}
-                                                        className="flex items-center text-white/80 hover:text-white py-1 text-sm"
-                                                        onClick={closeAllMenus}
-                                                    >
-                                                        <div className="w-6 h-6 rounded-full overflow-hidden mr-3 flex-shrink-0 border border-white/20 flex items-center justify-center text-white/80">
-                                                            {post.icon}
-                                                        </div>
-                                                        {post.name}
-                                                    </Link>
+                                        {/* Submenú expandible móvil */}
+                                        <div className={`overflow-hidden transition-all duration-300 ${openSubmenus[item.key] ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                                            }`}>
+                                            <div className="ml-4 mt-2 space-y-1 border-l-2 border-cyan-500/20 pl-4">
+                                                {item.items.map((subItem, subIndex) => (
+                                                    <div key={subIndex}>
+                                                        {subItem.type === "category" ? (
+                                                            <div>
+                                                                <h4 className="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-2 px-2 break-words hyphens-auto">
+                                                                    {subItem.title}
+                                                                </h4>
+                                                                {subItem.items.map((categoryItem, categoryIndex) => (
+                                                                    <div key={categoryIndex}>
+                                                                        {renderLink(
+                                                                            categoryItem,
+                                                                            "block px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-cyan-500/10 rounded-lg transition-all duration-200 ml-4 leading-relaxed break-words hyphens-auto",
+                                                                            closeMobileMenu
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <div>
+                                                                {renderLink(
+                                                                    subItem,
+                                                                    "block px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-cyan-500/10 rounded-lg transition-all duration-200 leading-relaxed break-words hyphens-auto",
+                                                                    closeMobileMenu
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 ))}
                                             </div>
-                                        ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
-
-                            {/* Sección de Proyectos en Móvil */}
-                            <div>
-                                <div
-                                    onClick={toggleProjects}
-                                    className="flex justify-between items-center text-white/80 hover:text-white py-3 border-b border-white/10 hover:bg-white/5 transition-all"
-                                >
-                                    Mis Proyectos (OpenSource)
-                                    <ChevronDown
-                                        size={16}
-                                        className={`transition-transform ${isProjectsOpen ? 'rotate-180' : ''}`}
-                                    />
-                                </div>
-
-                                {isProjectsOpen && (
-                                    <div className="pl-4 mt-2 space-y-2">
-                                        {projectCategories.map((category, catIndex) => (
-                                            <div key={catIndex}>
-                                                <p className="text-white/60 text-xs uppercase mb-2">{category.category}</p>
-                                                {category.projects.map((project, projIndex) => (
-                                                    <Link
-                                                        key={projIndex}
-                                                        href={project.path}
-                                                        target={project.newTab ? '_blank' : '_self'}
-                                                        rel={project.newTab ? 'noopener noreferrer' : ''}
-                                                        className="flex items-center text-white/80 hover:text-white py-1 text-sm"
-                                                        onClick={closeAllMenus}
-                                                    >
-                                                        {renderProjectIcon(project.icon, project.name, 'w-6 h-6')}
-                                                        {project.name}
-                                                    </Link>
-                                                ))}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                        ))}
+                    </div>
+                </div>
+            </div>
         </nav>
     );
-};
+}
 
 export default Navegation;

@@ -1,3 +1,20 @@
 {
-    "favicon":"https://raw.githubusercontent.com/rodolfocasan/fetch-media/main/logos/me_01.png"
+    "photos":{
+        "me_01":"https://raw.githubusercontent.com/rodolfocasan/fetch-media/main/photos/profile_01.jpg"
+    },
+
+    "logos":{
+        "favicon":"https://raw.githubusercontent.com/rodolfocasan/fetch-media/main/logos/me_01.png"
+    },
+
+    "contact_email":"contact.christcastr@gmail.com",
+    "contact_phone":"+50369893085",
+
+    "colorMarca": "#192332",
+    "main_domain": "https://rodolfocasan.github.io",
+    "SEO": {
+        "google_search_console_id": "XXXXXXXXXXXXXXXXXXXXXXX"
+    },
+    "android_package":"com.rodolfocasan.app",
+    "android_appname":"Rodolfo Casan"
 }

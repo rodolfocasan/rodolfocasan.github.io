@@ -1,18 +1,20 @@
 // src/app/page.js
-import React from "react";
+import React from 'react'
 
-import Welcome from "./HOME/Welcome";
-import Stats from "./HOME/Stats";
-
-
+import Introduction from './Home/Components/Introduction';
+import Stats from './Home/Components/Stats';
 
 
 
-export default function Home() {
+
+
+function page() {
   return (
     <React.Fragment>
-      <Welcome />
+      <Introduction />
       <Stats />
     </React.Fragment>
-  );
+  )
 }
+
+export default page

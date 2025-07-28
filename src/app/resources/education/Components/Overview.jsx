@@ -1,8 +1,8 @@
 // src/app/resources/education/Components/Overview.jsx
 'use client';
 import React, { useState, useEffect, useCallback } from 'react'
-import { FaLock, FaExternalLinkAlt, FaGraduationCap, FaUser, FaCalendarAlt, FaTimes, FaEye, FaSpinner, FaExclamationTriangle } from 'react-icons/fa'
-import { MdRefresh, MdTimer } from 'react-icons/md'
+import { FaLock, FaExternalLinkAlt, FaGraduationCap, FaUser, FaCalendarAlt, FaTimes, FaEye, FaEyeSlash, FaSpinner, FaExclamationTriangle } from 'react-icons/fa'
+import { MdRefresh, MdTimer, MdClear } from 'react-icons/md'
 import { IoIosWarning } from 'react-icons/io'
 
 
@@ -21,12 +21,42 @@ function Overview() {
     // Estados del modal de actualización
     const [showModal, setShowModal] = useState(false)
     const [password, setPassword] = useState('')
+    const [showPassword, setShowPassword] = useState(false)
     const [updating, setUpdating] = useState(false)
     const [updateMessage, setUpdateMessage] = useState('')
+
+    // Estados para detección de extracción en proceso
+    const [extractionInProgress, setExtractionInProgress] = useState(false)
+    const [extractionMessage, setExtractionMessage] = useState('')
 
     // Configuración de la API
     const API_BASE = 'https://rocasan-cupones.onrender.com'
     const CUPONES_PER_PAGE = 12
+
+    // Función para verificar el estado del sistema
+    const checkSystemStatus = async () => {
+        try {
+            const response = await fetch(`${API_BASE}/api/estado`)
+
+            if (response.ok) {
+                const data = await response.json()
+
+                // Verificar si hay extracción en proceso
+                if (data.extractor_en_proceso) {
+                    setExtractionInProgress(true)
+                    setExtractionMessage('Se están añadiendo nuevos cupones educativos. Por favor, espera unos minutos mientras se completa la actualización.')
+                } else {
+                    setExtractionInProgress(false)
+                    setExtractionMessage('')
+                }
+
+                return data
+            }
+        } catch (err) {
+            console.error('Error al verificar estado del sistema:', err)
+        }
+        return null
+    }
 
     // Función para obtener cupones iniciales
     const fetchCupones = async (pageNum = 1, append = false) => {
@@ -45,6 +75,17 @@ function Overview() {
             }
 
             const data = await response.json()
+
+            // Verificar si hay extracción en proceso
+            if (data.estado === 'actualizando') {
+                setExtractionInProgress(true)
+                setExtractionMessage(data.mensaje || 'Los cupones se están actualizando, por favor espera unos momentos...')
+                setCupones([])
+                return
+            } else {
+                setExtractionInProgress(false)
+                setExtractionMessage('')
+            }
 
             if (data.cupones && Array.isArray(data.cupones)) {
                 // Filtrar solo cupones gratuitos
@@ -79,17 +120,17 @@ function Overview() {
 
     // Función para cargar más cupones (infinite scroll)
     const loadMoreCupones = useCallback(() => {
-        if (!loadingMore && hasMore) {
+        if (!loadingMore && hasMore && !extractionInProgress) {
             const nextPage = page + 1
             setPage(nextPage)
             fetchCupones(nextPage, true)
         }
-    }, [loadingMore, hasMore, page])
+    }, [loadingMore, hasMore, page, extractionInProgress])
 
     // Efecto para infinite scroll
     useEffect(() => {
         const handleScroll = () => {
-            if (window.innerHeight + document.documentElement.scrollTop !== document.documentElement.offsetHeight || loadingMore) {
+            if (window.innerHeight + document.documentElement.scrollTop !== document.documentElement.offsetHeight || loadingMore || extractionInProgress) {
                 return
             }
 
@@ -100,7 +141,7 @@ function Overview() {
 
         window.addEventListener('scroll', handleScroll)
         return () => window.removeEventListener('scroll', handleScroll)
-    }, [loadMoreCupones, loadingMore, hasMore])
+    }, [loadMoreCupones, loadingMore, hasMore, extractionInProgress])
 
     // Función para actualizar cupones (requiere contraseña)
     const handleUpdate = async () => {
@@ -127,10 +168,15 @@ function Overview() {
 
             if (response.ok) {
                 setUpdateMessage('Actualización iniciada exitosamente')
+                setExtractionInProgress(true)
+                setExtractionMessage('Se están añadiendo nuevos cupones educativos. Por favor, espera unos minutos mientras se completa la actualización.')
+
                 setTimeout(() => {
                     setShowModal(false)
                     setPassword('')
-                    fetchCupones() // Recargar cupones después de la actualización
+                    setShowPassword(false)
+                    // Comenzar a verificar el estado periódicamente
+                    checkSystemStatus()
                 }, 2000)
             } else {
                 setUpdateMessage(data.error || 'Error al actualizar')
@@ -143,9 +189,51 @@ function Overview() {
         }
     }
 
-    // Efecto inicial para cargar cupones
+    // Función para limpiar el campo de contraseña
+    const clearPassword = () => {
+        setPassword('')
+        setUpdateMessage('')
+    }
+
+    // Función para alternar visibilidad de contraseña
+    const togglePasswordVisibility = () => {
+        setShowPassword(!showPassword)
+    }
+
+    // Efecto para verificar periódicamente el estado cuando hay extracción en proceso
     useEffect(() => {
-        fetchCupones()
+        let intervalId = null
+
+        if (extractionInProgress) {
+            intervalId = setInterval(async () => {
+                const status = await checkSystemStatus()
+
+                // Si la extracción ya no está en proceso, recargar cupones
+                if (status && !status.extractor_en_proceso) {
+                    setExtractionInProgress(false)
+                    setExtractionMessage('')
+                    fetchCupones() // Recargar cupones
+                }
+            }, 10000) // Verificar cada 10 segundos
+        }
+
+        return () => {
+            if (intervalId) {
+                clearInterval(intervalId)
+            }
+        }
+    }, [extractionInProgress])
+
+    // Efecto inicial para cargar cupones y verificar estado
+    useEffect(() => {
+        const init = async () => {
+            await checkSystemStatus()
+            if (!extractionInProgress) {
+                fetchCupones()
+            }
+        }
+
+        init()
     }, [])
 
     // Función para formatear fecha
@@ -162,6 +250,77 @@ function Overview() {
         } catch {
             return dateString
         }
+    }
+
+    // Renderizado cuando hay extracción en proceso
+    if (extractionInProgress) {
+        return (
+            <section className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800">
+                <div className="container mx-auto px-4 py-16">
+                    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+                        {/* Animación de actualización */}
+                        <div className="relative mb-8">
+                            <div className="w-20 h-20 border-4 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
+                            <div className="absolute inset-0 w-20 h-20 border-4 border-green-400/20 border-b-green-400 rounded-full animate-spin animate-reverse" style={{ animationDuration: '3s' }}></div>
+                        </div>
+
+                        {/* Título principal */}
+                        <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 via-green-500 to-blue-600 bg-clip-text text-transparent mb-6">
+                            Actualizando Cupones
+                        </h1>
+
+                        {/* Mensaje explicativo */}
+                        <div className="bg-gradient-to-r from-blue-500/10 via-green-500/10 to-blue-500/10 border border-blue-400/30 rounded-2xl p-8 mb-8 backdrop-blur-sm max-w-2xl">
+                            <div className="flex items-center justify-center gap-3 mb-4">
+                                <FaSpinner className="text-blue-400 text-2xl animate-spin" />
+                                <MdTimer className="text-green-400 text-2xl" />
+                            </div>
+
+                            <p className="text-lg text-gray-300 leading-relaxed mb-4">
+                                {extractionMessage}
+                            </p>
+
+                            <div className="text-sm text-gray-400 space-y-2">
+                                <p>Se están agregando nuevos cursos gratuitos</p>
+                                <p>Este proceso toma aproximadamente 5-10 minutos</p>
+                                <p>La página se actualizará automáticamente cuando esté listo</p>
+                            </div>
+                        </div>
+
+                        {/* Indicador de progreso visual */}
+                        <div className="w-full max-w-md">
+                            <div className="bg-gray-700 rounded-full h-2 mb-4">
+                                <div className="bg-gradient-to-r from-blue-400 to-green-400 h-2 rounded-full animate-pulse" style={{ width: '70%' }}></div>
+                            </div>
+                            <p className="text-gray-400 text-sm">
+                                Procesando nuevos cupones educativos...
+                            </p>
+                        </div>
+
+                        {/* Consejos mientras espera */}
+                        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl">
+                            <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-6 text-center">
+                                <FaGraduationCap className="text-3xl text-blue-400 mx-auto mb-3" />
+                                <h3 className="text-white font-semibold mb-2">Mientras Esperas</h3>
+                                <p className="text-gray-400 text-sm">Prepara tu cuenta de Udemy para acceder rápidamente a los nuevos cursos</p>
+                            </div>
+
+                            <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-6 text-center">
+                                <MdTimer className="text-3xl text-green-400 mx-auto mb-3" />
+                                <h3 className="text-white font-semibold mb-2">Actúa Rápido</h3>
+                                <p className="text-gray-400 text-sm">Los cupones tienen disponibilidad limitada, úsalos lo antes posible</p>
+                            </div>
+
+                            <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-6 text-center">
+                                <IoIosWarning className="text-3xl text-orange-400 mx-auto mb-3" />
+                                <h3 className="text-white font-semibold mb-2">Recordatorio</h3>
+                                <p className="text-gray-400 text-sm">Guarda tus cursos favoritos en tu lista de deseos de Udemy</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        )
     }
 
     // Renderizado de loading inicial
@@ -347,8 +506,6 @@ function Overview() {
                         <p className="text-gray-400 text-lg">Sin más cupones por ahora. Vuelve mañana.</p>
                     </div>
                 )}
-
-                {/* Botón oculto de actualización - REMOVIDO */}
             </div>
 
             {/* Modal de actualización */}
@@ -360,6 +517,7 @@ function Overview() {
                             onClick={() => {
                                 setShowModal(false)
                                 setPassword('')
+                                setShowPassword(false)
                                 setUpdateMessage('')
                             }}
                             className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
@@ -376,27 +534,60 @@ function Overview() {
                             <p className="text-gray-400">Ingresa la contraseña para solicitar una actualización</p>
                         </div>
 
-                        {/* Campo de contraseña */}
+                        {/* Campo de contraseña con funcionalidades mejoradas */}
                         <div className="mb-6">
                             <label className="block text-gray-300 text-sm font-medium mb-2">
                                 Contraseña de actualización
                             </label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:border-green-400 focus:outline-none transition-colors"
-                                placeholder="Ingresa la contraseña"
-                                onKeyPress={(e) => e.key === 'Enter' && !updating && handleUpdate()}
-                                disabled={updating}
-                            />
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 pr-20 text-white placeholder-gray-400 focus:border-green-400 focus:outline-none transition-colors"
+                                    placeholder="Ingresa la contraseña"
+                                    onKeyPress={(e) => e.key === 'Enter' && !updating && handleUpdate()}
+                                    disabled={updating}
+                                />
+
+                                {/* Botones de funcionalidad */}
+                                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+                                    {/* Botón para limpiar contraseña */}
+                                    {password && (
+                                        <button
+                                            type="button"
+                                            onClick={clearPassword}
+                                            className="p-2 text-gray-400 hover:text-red-400 transition-colors rounded-lg hover:bg-gray-600/50"
+                                            title="Limpiar contraseña"
+                                            disabled={updating}
+                                        >
+                                            <MdClear className="text-lg" />
+                                        </button>
+                                    )}
+
+                                    {/* Botón para mostrar/ocultar contraseña */}
+                                    <button
+                                        type="button"
+                                        onClick={togglePasswordVisibility}
+                                        className="p-2 text-gray-400 hover:text-blue-400 transition-colors rounded-lg hover:bg-gray-600/50"
+                                        title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                        disabled={updating}
+                                    >
+                                        {showPassword ? (
+                                            <FaEyeSlash className="text-lg" />
+                                        ) : (
+                                            <FaEye className="text-lg" />
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Mensaje de estado */}
                         {updateMessage && (
                             <div className={`mb-4 p-3 rounded-lg text-sm ${updateMessage.includes('Error') || updateMessage.includes('contraseña')
-                                    ? 'bg-red-500/20 text-red-300 border border-red-500/30'
-                                    : 'bg-green-500/20 text-green-300 border border-green-500/30'
+                                ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                                : 'bg-green-500/20 text-green-300 border border-green-500/30'
                                 }`}>
                                 {updateMessage}
                             </div>
@@ -408,6 +599,7 @@ function Overview() {
                                 onClick={() => {
                                     setShowModal(false)
                                     setPassword('')
+                                    setShowPassword(false)
                                     setUpdateMessage('')
                                 }}
                                 className="flex-1 py-3 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-all duration-300"
@@ -459,6 +651,10 @@ function Overview() {
                     -webkit-line-clamp: 3;
                     -webkit-box-orient: vertical;
                     overflow: hidden;
+                }
+
+                .animate-reverse {
+                    animation-direction: reverse;
                 }
             `}</style>
         </section>

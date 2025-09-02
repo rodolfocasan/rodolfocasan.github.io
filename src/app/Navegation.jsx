@@ -132,6 +132,24 @@ const menuItems = [
         ]
     },
     {
+        title: "Mis Servicios",
+        type: "submenu",
+        key: "services",
+        items: [
+            {
+                title: "VOLQOR Studios",
+                type: "category",
+                items: [
+                    {
+                        title: "Calculadora para Cambio",
+                        href: "/services/volqor/calculadora-cambio/privacy-policy",
+                        newTab: false
+                    },
+                ]
+            },
+        ]
+    },
+    {
         title: "Recursos",
         type: "submenu",
         key: "recursos",
